@@ -10,6 +10,6 @@ import com.qg.fangrui.cet.http.MyHttpClient;
  */
 public class Main {
     public static void main(String[] args) {
-        System.out.println(MyHttpClient.getCetScore("准考证号", "姓名"));
+        System.out.println(MyHttpClient.getCetScore("440380171230518", "方锐", 0));
     }
 }

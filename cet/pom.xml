@@ -49,8 +49,12 @@
             <version>4.5.3</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.10.3</version>
+        </dependency>
     </dependencies>
-
 
 	<build>
 		<plugins>
@@ -60,6 +64,5 @@
 			</plugin>
 		</plugins>
 	</build>
-
 
 </project>

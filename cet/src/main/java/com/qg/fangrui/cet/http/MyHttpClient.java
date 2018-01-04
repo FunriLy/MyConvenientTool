@@ -1,5 +1,6 @@
 package com.qg.fangrui.cet.http;
 
+import com.qg.fangrui.cet.exception.MyException;
 import com.qg.fangrui.cet.model.Cet;
 import com.qg.fangrui.cet.utils.TagUtil;
 import org.apache.http.HttpEntity;
@@ -7,6 +8,7 @@ import org.apache.http.HttpHost;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.conn.HttpHostConnectException;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
@@ -30,10 +32,36 @@ public class MyHttpClient {
      * 查询四六级成绩
      * @param number 准考证号
      * @param name 姓名
-     * @return
+     * @param time 替换次数
+     * @return 四六级成绩查询结果
      */
-    public synchronized static Cet getCetScore(String number, String name) {
-        String result = "";
+    public static Cet getCetScore(String number, String name, int time) {
+        if (time <= 0) {
+            // 若试探次数为负数
+            time = 10;
+        }
+        Cet cet = null;
+        while (time > 0) {
+            String host = "127.0.0.1";
+            int port = 8080;
+            cet = getCetScore(number, name, host, port);
+            if (cet.getResult() != null) {
+                break;
+            }
+            time--;
+        }
+        return cet;
+    }
+
+    /**
+     * 查询四六级成绩
+     * @param number 准考证号
+     * @param name 姓名
+     * @param host 代理ip
+     * @param port 端口
+     * @return 四六级成绩查询结果
+     */
+    private synchronized static Cet getCetScore(String number, String name, String host, int port) {
         URL = URL.replace("NAME", name);
         URL = URL.replace("NUM", number);
 
@@ -53,7 +81,7 @@ public class MyHttpClient {
         连接池 IP 替换
         注意 : 这里的ip与端口可能需要修改一下
          */
-        HttpHost proxy = new HttpHost("112.84.192.174", 8118);
+        HttpHost proxy = new HttpHost(host, port);
         RequestConfig configIP = RequestConfig.custom().setProxy(proxy).build();
         httpGet.setConfig(configDL);
         httpGet.setConfig(configIP);
@@ -82,7 +110,7 @@ public class MyHttpClient {
                 // 去除 html 标签
                 String html = TagUtil.delHTMLTag(realHtml);
                 // 切取结果
-                result = html.substring(html.indexOf("成绩查询结果"), html.indexOf("口试成绩")).trim()
+                String result = html.substring(html.indexOf("成绩查询结果"), html.indexOf("口试成绩")).trim()
                         .replace("：", " ");
                 // 拆分为数组
                 String[] array = result.split(" ");
@@ -99,9 +127,13 @@ public class MyHttpClient {
                 System.out.println("html is null !!!");
             }
 
+        } catch (HttpHostConnectException e) {
+            // 代理IP无效，直接抛出异常
+            System.out.println("代理ip无效 IP:" + host + " port:" + port);
         } catch (Exception e) {
             System.out.println("查询出错，请检查填写！");
             System.out.println("错误信息 : " + e.getMessage());
+            throw new MyException("提写出错！！！");
         } finally {
             try {
                 if (httpClient != null) {
@@ -114,8 +146,6 @@ public class MyHttpClient {
                 e.printStackTrace();
             }
         }
-
-
 
         return cet;
     }
