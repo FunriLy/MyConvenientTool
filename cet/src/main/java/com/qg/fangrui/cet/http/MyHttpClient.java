@@ -2,6 +2,9 @@ package com.qg.fangrui.cet.http;
 
 import com.qg.fangrui.cet.exception.MyException;
 import com.qg.fangrui.cet.model.Cet;
+import com.qg.fangrui.cet.model.IpMessage;
+import com.qg.fangrui.cet.utils.Constant;
+import com.qg.fangrui.cet.utils.IpUtil;
 import com.qg.fangrui.cet.utils.TagUtil;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -12,8 +15,6 @@ import org.apache.http.conn.HttpHostConnectException;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-
-import java.io.IOException;
 
 /**
  * Http 连接类
@@ -35,16 +36,14 @@ public class MyHttpClient {
      * @param time 替换次数
      * @return 四六级成绩查询结果
      */
-    public static Cet getCetScore(String number, String name, int time) {
+    public static Cet getCetScore(String number, String name, int time, IpMessage ip) {
         if (time <= 0) {
             // 若试探次数为负数
             time = 10;
         }
         Cet cet = null;
         while (time > 0) {
-            String host = "127.0.0.1";
-            int port = 8080;
-            cet = getCetScore(number, name, host, port);
+            cet = getCetScore(number, name, ip.getIpAddress(), Integer.valueOf(ip.getIpPort()));
             if (cet.getResult() != null) {
                 break;
             }
@@ -71,9 +70,10 @@ public class MyHttpClient {
         CloseableHttpClient httpClient = HttpClients.createDefault();
         // 一般爬虫请求都用Get
         HttpGet httpGet = new HttpGet(URL);
-        RequestConfig configDL = RequestConfig.custom().setConnectTimeout(1000)
+        RequestConfig configDL = RequestConfig.custom()
+                .setConnectTimeout(Constant.CET_CONNECT_TIMEOUT_LIMIT)
                 // 设置连接时间超时10秒断连
-                .setSocketTimeout(1000)
+                .setSocketTimeout(Constant.CET_SOCKET_TIMEOUT_LIMIT)
                 // 设置读取时间超时10秒断连
                 .build();
 
@@ -101,6 +101,10 @@ public class MyHttpClient {
             respond = httpClient.execute(httpGet);
 
             System.out.println("状态码 " + respond.getStatusLine().getStatusCode());
+
+            if (respond.getStatusLine().getStatusCode() != Constant.SUCCESS_STATUS) {
+                return cet;
+            }
 
             HttpEntity entity = respond.getEntity();
             if (entity != null) {
@@ -135,16 +139,7 @@ public class MyHttpClient {
             System.out.println("错误信息 : " + e.getMessage());
             throw new MyException("提写出错！！！");
         } finally {
-            try {
-                if (httpClient != null) {
-                    httpClient.close();
-                }
-                if (respond != null) {
-                    respond.close();
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            IpUtil.close(httpClient, respond);
         }
 
         return cet;

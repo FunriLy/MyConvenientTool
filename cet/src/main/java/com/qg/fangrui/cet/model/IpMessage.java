@@ -20,8 +20,8 @@ import java.io.Serializable;
 public class IpMessage implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    private String IPAddress;
-    private String IPPort;
-    private String IPType;
-    private String IPSpeed;
+    private String ipAddress;
+    private String ipPort;
+    private String ipType;
+    private String ipSpeed;
 }

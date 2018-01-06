@@ -11,8 +11,6 @@ import org.apache.http.impl.client.HttpClients;
 import java.io.IOException;
 import java.util.List;
 
-import java.util.List;
-
 /**
  * IP 工具类
  * @author FunriLy
@@ -25,17 +23,18 @@ public class IpUtil {
      * 测试此IP是否有效
      * @param ipMessages 有效的 IP 集合
      */
-    private static void ipIsable(List<IpMessage> ipMessages) {
+    public static void ipIsable(List<IpMessage> ipMessages) {
         CloseableHttpClient httpClient = HttpClients.createDefault();
         CloseableHttpResponse response = null;
 
         for(int i = 0; i < ipMessages.size(); i++) {
-            String ip = ipMessages.get(i).getIPAddress();
-            String port = ipMessages.get(i).getIPPort();
+            String ip = ipMessages.get(i).getIpAddress();
+            String port = ipMessages.get(i).getIpPort();
 
             HttpHost proxy = new HttpHost(ip, Integer.parseInt(port));
-            RequestConfig config = RequestConfig.custom().setProxy(proxy).setConnectTimeout(5000).
-                    setSocketTimeout(5000).build();
+            RequestConfig config = RequestConfig.custom().setProxy(proxy)
+                    .setConnectTimeout(Constant.TEST_CONNECT_TIMEOUT_LIMIT).
+                    setSocketTimeout(Constant.TEST_SOCKET_TIMEOUT_LIMIT).build();
             HttpGet httpGet = new HttpGet("https://www.baidu.com");
             httpGet.setConfig(config);
 
@@ -49,13 +48,17 @@ public class IpUtil {
             try {
                 response = httpClient.execute(httpGet);
             } catch (IOException e) {
-                System.out.println("不可用代理已删除" + ipMessages.get(i).getIPAddress()
-                        + ": " + ipMessages.get(i).getIPPort());
+                System.out.println("不可用代理已删除" + ipMessages.get(i).getIpAddress()
+                        + ": " + ipMessages.get(i).getIpPort());
                 ipMessages.remove(ipMessages.get(i));
                 i--;
             }
         }
 
+        close(httpClient, response);
+    }
+
+    public static void close(CloseableHttpClient httpClient, CloseableHttpResponse response) {
         try {
             if (httpClient != null) {
                 httpClient.close();

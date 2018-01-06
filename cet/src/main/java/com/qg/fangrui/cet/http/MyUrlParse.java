@@ -1,6 +1,7 @@
 package com.qg.fangrui.cet.http;
 
 import com.qg.fangrui.cet.model.IpMessage;
+import com.qg.fangrui.cet.utils.Constant;
 import org.apache.http.HttpHost;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -17,20 +18,31 @@ import java.io.IOException;
 import java.util.List;
 
 /**
+ * 爬取代理IP
+ * @author FunriLy
  * Created by FunriLy on 2017/12/29.
  * From small beginnings comes great things.
  */
 public class MyUrlParse {
 
-    private static final String XICI_URL = "http://www.xicidaili.com/nn/1";
-
     /**
      * 利用本机IP爬取代理IP
-     * @param ipLists 本地代理IP列表
-     * @return 更新后的代理IP列表
+     * @param ipLists 代理IP列表
+     * @return 可用代理IP列表
      */
     public static List<IpMessage> urlParse(List<IpMessage> ipLists) {
-        String html = getHtml(XICI_URL);
+        System.out.println("利用本机IP爬取代理IP");
+        return urlParse(ipLists, 1, null, 0);
+    }
+
+    /**
+     * 利用代理IP爬取代理IP
+     * @param ipLists 本地代理IP列表
+     * @param num 页数
+     * @return 更新后的代理IP列表
+     */
+    public static List<IpMessage> urlParse(List<IpMessage> ipLists, int num, String host, int port) {
+        String html = getHtml(Constant.XICI_URL + num, host, port);
         // 解析为DOM结构
         Document document = Jsoup.parse(html);
         // 提取数据
@@ -40,10 +52,10 @@ public class MyUrlParse {
             Element element = elements.get(i);
             IpMessage ipMessage = new IpMessage();
             // 提取
-            ipMessage.setIPAddress(element.select("td").get(1).text());
-            ipMessage.setIPPort(element.select("td").get(2).text());
-            ipMessage.setIPType(element.select("td").get(5).text());
-            ipMessage.setIPSpeed(element.select("td").get(6).select("div[class=bar]").attr("title"));
+            ipMessage.setIpAddress(element.select("td").get(1).text());
+            ipMessage.setIpPort(element.select("td").get(2).text());
+            ipMessage.setIpType(element.select("td").get(5).text());
+            ipMessage.setIpSpeed(element.select("td").get(6).select("div[class=bar]").attr("title"));
 
             ipLists.add(ipMessage);
         }
@@ -52,23 +64,28 @@ public class MyUrlParse {
     }
 
     /**
-     * 利用本机IP利用Get请求爬取网页
+     * 利用IP利用Get请求爬取网页
      * @param url 访问URL
+     * @param host 代理IP host
+     * @param port 代理IP port
      * @return 网页内容
      */
-    private static String getHtml(String url) {
+    private static String getHtml(String url, String host, int port) {
         String entity = null;
         CloseableHttpClient httpClient = HttpClients.createDefault();
 
         //设置超时处理
-        RequestConfig config = RequestConfig.custom().setConnectTimeout(3000).
-                setSocketTimeout(3000).build();
+        RequestConfig config = RequestConfig.custom()
+                .setConnectTimeout(Constant.IP_CONNECT_TIMEOUT_LIMIT).
+                setSocketTimeout(Constant.IP_SOCKET_TIMEOUT_LIMIT).build();
         HttpGet httpGet = new HttpGet(url);
         httpGet.setConfig(config);
 
-//        HttpHost proxy = new HttpHost("222.76.187.135", 8118);
-//        RequestConfig configIP = RequestConfig.custom().setProxy(proxy).build();
-//        httpGet.setConfig(configIP);
+        if (host != null && port != 0) {
+            HttpHost proxy = new HttpHost(host, port);
+            RequestConfig configIP = RequestConfig.custom().setProxy(proxy).build();
+            httpGet.setConfig(configIP);
+        }
 
         httpGet.setHeader("Accept", "text/html,application/xhtml+xml,application/xml;" +
                 "q=0.9,image/webp,*/*;q=0.8");
@@ -87,7 +104,7 @@ public class MyUrlParse {
             CloseableHttpResponse httpResponse = httpClient.execute(httpGet);
 
             //得到服务响应状态码
-            if (httpResponse.getStatusLine().getStatusCode() == 200) {
+            if (httpResponse.getStatusLine().getStatusCode() == Constant.SUCCESS_STATUS) {
                 entity = EntityUtils.toString(httpResponse.getEntity(), "utf-8");
             }
 
